@@ -1,4 +1,5 @@
 <?php
+// src\DataFixtures\AppFixtures.php
 
 namespace App\DataFixtures;
 
@@ -10,13 +11,11 @@ class AppFixtures extends Fixture
 {
     public function load(ObjectManager $manager): void
     {
-
-        //création d'une vingtaine de livre
-
+        // Création d'une vingtaine de livres ayant pour titre
         for ($i = 0; $i < 20; $i++) {
             $livre = new Book;
-            $livre->setTitle('livre ' . $i);
-            $livre->setCoverText('quatrième de couverture numéro : ' . $i);
+            $livre->setTitle('Livre ' . $i);
+            $livre->setCoverText('Quatrième de couverture numéro : ' . $i);
             $manager->persist($livre);
         }
 

@@ -13,7 +13,7 @@ class AppFixtures extends Fixture
 
         //création d'une vingtaine de livre
 
-        for ($i = 0; $i < 20; $i++) {
+        for ($i = 1; $i <= 20; $i++) {
             $livre = new Book;
             $livre->setTitle('livre ' . $i);
             $livre->setCoverText('quatrième de couverture numéro : ' . $i);

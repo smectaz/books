@@ -2,12 +2,13 @@
 
 namespace App\Controller;
 
+use App\Entity\Book;
 use App\Repository\BookRepository;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 class BookController extends AbstractController
 {
@@ -20,14 +21,22 @@ class BookController extends AbstractController
     return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
 }
 
-//route pour get un livre par id
-    #[Route('/api/books/{id}', name: 'detailBook', methods: ['GET'])]
-    public function getDetailBook(int $id, SerializerInterface $serializer, BookRepository $bookRepository):JsonResponse{
-        $book = $bookRepository->find($id);
-        if ($book) {
+//ancienne route pour get un livre par id
+    // #[Route('/api/books/{id}', name: 'detailBook', methods: ['GET'])]
+    // public function getDetailBook(int $id, SerializerInterface $serializer, BookRepository $bookRepository):JsonResponse{
+    //     $book = $bookRepository->find($id);
+    //     if ($book) {
+    //         $jsonBook = $serializer->serialize($book, 'json');
+    //         return new JsonResponse($jsonBook, Response::HTTP_OK, [], true);
+    //     }
+    //     return new JsonResponse(null, Response::HTTP_NOT_FOUND);
+    // }
+
+//route pour get un livre par id avec paramconverter
+        #[Route('/api/books/{id}', name: 'detailBook', methods: ['GET'])]
+        public function getDetailBook(Book $book, SerializerInterface $serializer):JsonResponse
+        {
             $jsonBook = $serializer->serialize($book, 'json');
-            return new JsonResponse($jsonBook, Response::HTTP_OK, [], true);
+            return new JsonResponse($jsonBook, Response::HTTP_OK, ['accept' => 'json'], true);
         }
-        return new JsonResponse(null, Response::HTTP_NOT_FOUND);
-    }
 }

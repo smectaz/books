@@ -13,14 +13,17 @@ class Book
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(["getBooks"])]
+    #[Groups(["getAuthors"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(["getBooks"])]
+    #[Groups(["getAuthors"])]
     private ?string $title = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(["getBooks"])]
+    #[Groups(["getAuthors"])]
     private ?string $coverText = null;
 
     #[ORM\ManyToOne(inversedBy: 'books')]

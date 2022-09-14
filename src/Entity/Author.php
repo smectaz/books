@@ -15,17 +15,21 @@ class Author
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(["getBooks"])]
+    #[Groups(["getAuthors"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(["getBooks"])]
+    #[Groups(["getAuthors"])]
     private ?string $firstName = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(["getBooks"])]
+    #[Groups(["getAuthors"])]
     private ?string $lastName = null;
 
     #[ORM\OneToMany(mappedBy: 'author', targetEntity: Book::class)]
+    #[Groups(["getAuthors"])]
     private Collection $books;
 
     public function __construct()

@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
@@ -19,6 +20,7 @@ class AuthorController extends AbstractController
 {
       //route pour get tout les auteurs sans distinction
     #[Route('/api/authors', name:'author', methods:['GET'])]
+
     public function getAllAuthors(AuthorRepository $authorRepository, SerializerInterface $serializer): JsonResponse
     {
     $authorList = $authorRepository->findAll();
@@ -29,6 +31,7 @@ class AuthorController extends AbstractController
 
     //route pour get un auteur par id avec paramconverter
     #[Route('/api/authors/{id}', name: 'detailAuthor', methods: ['GET'])]
+
     public function getDetailAuthor(Author $author, SerializerInterface $serializer):JsonResponse
     {
         $jsonAuthor = $serializer->serialize($author, 'json', ['groups' => 'getAuthors']);
@@ -37,6 +40,8 @@ class AuthorController extends AbstractController
 
     //route pour effacer un auteur
     #[Route('/api/authors/{id}', name: 'deleteAuthor', methods: ['DELETE'])]
+    #[IsGranted('ROLE_ADMIN', message: "Vous n'avez les droits suffisants pour effacer un auteur")]
+
     public function deleteAuthor(Author $author, EntityManagerInterface $em):JsonResponse
     {
         $em -> remove($author);
@@ -48,6 +53,8 @@ class AuthorController extends AbstractController
 
     //route pour créer un auteur
     #[Route('/api/authors', name:"createAuthor", methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN', message: "Vous n'avez les droits suffisants pour créer un auteur")]
+
         public function createAuthor(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator):JsonResponse
         {
             $author = $serializer -> deserialize($request -> getContent(), Author::class, 'json');
@@ -69,6 +76,8 @@ class AuthorController extends AbstractController
 
     //route pour modifier un auteur
     #[Route('/api/authors/{id}', name:"updateAuthors", methods:['PUT'])]
+    #[IsGranted('ROLE_ADMIN', message: "Vous n'avez les droits suffisants pour modifier un auteur")]
+    
     public function updateAuthor(Request $request, SerializerInterface $serializer,
         Author $currentAuthor, EntityManagerInterface $em, ValidatorInterface $validator): JsonResponse {
 

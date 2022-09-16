@@ -6,13 +6,16 @@ use App\Entity\Book;
 use App\Repository\BookRepository;
 use App\Repository\AuthorRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
@@ -20,12 +23,22 @@ class BookController extends AbstractController
 {
     //route pour get tout les livres sans distinction
     #[Route('/api/books', name:'book', methods:['GET'])]
-    public function getAllBooks(BookRepository $bookRepository, SerializerInterface $serializer): JsonResponse
+
+    public function getAllBooks(BookRepository $bookRepository, SerializerInterface $serializer, Request $request, TagAwareCacheInterface $cachePool): JsonResponse
     {
-    $bookList = $bookRepository->findAll();
-    $jsonBookList = $serializer->serialize($bookList, 'json', ['groups' => 'getBooks']);
-    return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
-}
+        $page = $request -> get('page', 1);
+        $limit = $request -> get('limit', 3);
+
+        $idCache = "getAllBook-" . $page . "-" . $limit;
+
+        $bookList = $cachePool -> get($idCache, function (ItemInterface $item) use ($bookRepository, $page, $limit) {
+            $item -> tag("booksCache");
+            return $bookRepository->findAllWithPagination($page, $limit);
+        });
+        
+        $jsonBookList = $serializer->serialize($bookList, 'json', ['groups' => 'getBooks']);
+        return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
+    }
 
 //ancienne route pour get un livre par id
     // #[Route('/api/books/{id}', name: 'detailBook', methods: ['GET'])]
@@ -40,6 +53,7 @@ class BookController extends AbstractController
 
 //route pour get un livre par id avec paramconverter
         #[Route('/api/books/{id}', name: 'detailBook', methods: ['GET'])]
+
         public function getDetailBook(Book $book, SerializerInterface $serializer):JsonResponse
         {
             $jsonBook = $serializer->serialize($book, 'json', ['groups' => 'getBooks']);
@@ -48,6 +62,8 @@ class BookController extends AbstractController
 
 //route pour effacer un livre
         #[Route('/api/books/{id}', name: 'deleteBook', methods: ['DELETE'])]
+        #[IsGranted('ROLE_ADMIN', message: "Vous n'avez les droits suffisants pour effacer un livre")]
+
         public function deleteBook(Book $book, EntityManagerInterface $em):JsonResponse
         {
             $em -> remove($book);
@@ -58,6 +74,8 @@ class BookController extends AbstractController
 
 //route pour créer un livre avec id de l'auteur
         #[Route('/api/books', name:"createBook", methods: ['POST'])]
+        #[IsGranted('ROLE_ADMIN', message: "Vous n'avez les droits suffisants pour créer un livre")]
+
         public function createBook(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, AuthorRepository $authorRepository, ValidatorInterface $validator):JsonResponse
         {
             $book = $serializer -> deserialize($request -> getContent(), book::class, 'json');
@@ -91,6 +109,7 @@ class BookController extends AbstractController
 
         //route pour modifier un livre
         #[Route('/api/books/{id}', name:"updateBook", methods:["PUT"])]
+        #[IsGranted('ROLE_ADMIN', message: "Vous n'avez les droits suffisants pour modifier un livre")]
 
         public function updateBook(Request $request, SerializerInterface $serializer, Book $currentBook, EntityManagerInterface $em, AuthorRepository $authorRepository, ValidatorInterface $validator): JsonResponse
         {

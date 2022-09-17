@@ -5,10 +5,12 @@ namespace App\Controller;
 use App\Entity\Author;
 use App\Repository\AuthorRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -21,13 +23,22 @@ class AuthorController extends AbstractController
       //route pour get tout les auteurs sans distinction
     #[Route('/api/authors', name:'author', methods:['GET'])]
 
-    public function getAllAuthors(AuthorRepository $authorRepository, SerializerInterface $serializer): JsonResponse
+    public function getAllAuthors(AuthorRepository $authorRepository, SerializerInterface $serializer, Request $request, TagAwareCacheInterface $cache): JsonResponse
     {
-    $authorList = $authorRepository->findAll();
 
-    $jsonAuthorList = $serializer->serialize($authorList, 'json', ['groups' => 'getAuthors']);
-    return new JsonResponse($jsonAuthorList, Response::HTTP_OK, [], true);
-    }
+        $page = $request->get('page', 1);
+        $limit = $request->get('limit', 3);
+
+        $idCache = "getAllAuthor-" . $page . "-" . $limit;
+        
+        $jsonAuthorList = $cache->get($idCache, function (ItemInterface $item) use ($authorRepository, $page, $limit, $serializer) {
+            $item->tag("authorsCache");
+            $authorList = $authorRepository->findAllWithPagination($page, $limit);
+            return $serializer->serialize($authorList, 'json', ['groups' => 'getAuthors']);
+        });
+      
+        return new JsonResponse($jsonAuthorList, Response::HTTP_OK, [], true);
+   }
 
     //route pour get un auteur par id avec paramconverter
     #[Route('/api/authors/{id}', name: 'detailAuthor', methods: ['GET'])]
@@ -42,8 +53,9 @@ class AuthorController extends AbstractController
     #[Route('/api/authors/{id}', name: 'deleteAuthor', methods: ['DELETE'])]
     #[IsGranted('ROLE_ADMIN', message: "Vous n'avez les droits suffisants pour effacer un auteur")]
 
-    public function deleteAuthor(Author $author, EntityManagerInterface $em):JsonResponse
+    public function deleteAuthor(Author $author, EntityManagerInterface $em, TagAwareCacheInterface $cachePool):JsonResponse
     {
+        $cachePool -> invalidateTags(["authorsCache"]);
         $em -> remove($author);
         $em -> flush();
         dd($author->getBooks());

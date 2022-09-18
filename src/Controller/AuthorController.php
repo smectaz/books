@@ -3,7 +3,6 @@
 namespace App\Controller;
 
 use App\Entity\Author;
-use JMS\Serializer\Serializer;
 use App\Repository\AuthorRepository;
 use JMS\Serializer\SerializerInterface;
 use Doctrine\ORM\EntityManagerInterface;
@@ -17,7 +16,6 @@ use Symfony\Contracts\Cache\TagAwareCacheInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 class AuthorController extends AbstractController
@@ -34,9 +32,9 @@ class AuthorController extends AbstractController
         $idCache = "getAllAuthor-" . $page . "-" . $limit;
         
         $jsonAuthorList = $cache->get($idCache, function (ItemInterface $item) use ($authorRepository, $page, $limit, $serializer) {
-            $context = SerializationContext :: create() -> setGroups(['getAuthors']);
             $item->tag("authorsCache");
             $authorList = $authorRepository->findAllWithPagination($page, $limit);
+            $context = SerializationContext :: create() -> setGroups(['getAuthors']);
             return $serializer->serialize($authorList, 'json', $context);
         });
       
@@ -57,11 +55,12 @@ class AuthorController extends AbstractController
     #[Route('/api/authors/{id}', name: 'deleteAuthor', methods: ['DELETE'])]
     #[IsGranted('ROLE_ADMIN', message: "Vous n'avez les droits suffisants pour effacer un auteur")]
 
-    public function deleteAuthor(Author $author, EntityManagerInterface $em, TagAwareCacheInterface $cachePool):JsonResponse
+    public function deleteAuthor(Author $author, EntityManagerInterface $em, TagAwareCacheInterface $cache):JsonResponse
     {
-        $cachePool -> invalidateTags(["authorsCache"]);
         $em -> remove($author);
         $em -> flush();
+        $cache -> invalidateTags(["authorsCache"]);
+
         dd($author->getBooks());
 
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
@@ -71,7 +70,7 @@ class AuthorController extends AbstractController
     #[Route('/api/authors', name:"createAuthor", methods: ['POST'])]
     #[IsGranted('ROLE_ADMIN', message: "Vous n'avez les droits suffisants pour créer un auteur")]
 
-        public function createAuthor(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator):JsonResponse
+        public function createAuthor(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cache):JsonResponse
         {
             $author = $serializer -> deserialize($request -> getContent(), Author::class, 'json');
 
@@ -83,6 +82,7 @@ class AuthorController extends AbstractController
 
             $em -> persist($author);
             $em -> flush();
+            $cache -> invalidateTags(["authorsCache"]);
 
             $context = SerializationContext :: create() -> setGroups(['getAuthors']);
             $jsonAuthor = $serializer -> serialize($author, 'json', $context);

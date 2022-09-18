@@ -3,7 +3,6 @@
 namespace App\Controller;
 
 use App\Entity\Book;
-use JMS\Serializer\Serializer;
 use App\Repository\BookRepository;
 use App\Repository\AuthorRepository;
 use JMS\Serializer\SerializerInterface;
@@ -18,7 +17,6 @@ use Symfony\Contracts\Cache\TagAwareCacheInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 class BookController extends AbstractController
@@ -35,9 +33,9 @@ class BookController extends AbstractController
         
         
         $jsonBookList = $cache->get($idCache, function (ItemInterface $item) use ($bookRepository, $page, $limit, $serializer) {
-            $context = SerializationContext :: create() -> setGroups(['getBooks']);
             $item->tag("booksCache");
             $bookList = $bookRepository->findAllWithPagination($page, $limit);
+            $context = SerializationContext :: create() -> setGroups(['getBooks']);
             return $serializer->serialize($bookList, 'json', $context);
         });
       
@@ -69,11 +67,12 @@ class BookController extends AbstractController
         #[Route('/api/books/{id}', name: 'deleteBook', methods: ['DELETE'])]
         #[IsGranted('ROLE_ADMIN', message: "Vous n'avez les droits suffisants pour effacer un livre")]
 
-        public function deleteBook(Book $book, EntityManagerInterface $em, TagAwareCacheInterface $cachePool):JsonResponse
+        public function deleteBook(Book $book, EntityManagerInterface $em, TagAwareCacheInterface $cache):JsonResponse
         {
-            $cachePool -> invalidateTags(["booksCache"]);
             $em -> remove($book);
             $em -> flush();
+
+            $cache -> invalidateTags(["booksCache"]);
 
             return new JsonResponse(null, Response::HTTP_NO_CONTENT);
         }
@@ -82,7 +81,7 @@ class BookController extends AbstractController
         #[Route('/api/books', name:"createBook", methods: ['POST'])]
         #[IsGranted('ROLE_ADMIN', message: "Vous n'avez les droits suffisants pour créer un livre")]
 
-        public function createBook(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, AuthorRepository $authorRepository, ValidatorInterface $validator):JsonResponse
+        public function createBook(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, AuthorRepository $authorRepository, ValidatorInterface $validator, TagAwareCacheInterface $cache):JsonResponse
         {
             $book = $serializer -> deserialize($request -> getContent(), book::class, 'json');
 
@@ -96,6 +95,9 @@ class BookController extends AbstractController
 
             $em -> persist($book);
             $em -> flush();
+
+            // On vide le cache
+            $cache->invalidateTags(["booksCache"]);
 
             //récupération de l'ensemble des données
             $content = $request -> toArray();

@@ -68,6 +68,10 @@ class Book
     #[Groups(["getBooks"])]
     private ?Author $author = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(["getBooks"])]
+    private ?string $comment = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -105,6 +109,18 @@ class Book
     public function setAuthor(?Author $author): self
     {
         $this->author = $author;
+
+        return $this;
+    }
+
+    public function getComment(): ?string
+    {
+        return $this->comment;
+    }
+
+    public function setComment(?string $comment): self
+    {
+        $this->comment = $comment;
 
         return $this;
     }

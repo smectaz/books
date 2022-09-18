@@ -4,9 +4,10 @@ namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\BookRepository;
+use JMS\Serializer\Annotation\Since;
 use JMS\Serializer\Annotation\Groups;
-use Symfony\Component\Validator\Constraints as Assert;
 use Hateoas\Configuration\Annotation as Hateoas;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /*j'utilise les annotation pour coller a la doc officielle de hateoas
 explication:
@@ -70,6 +71,7 @@ class Book
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(["getBooks"])]
+    #[Since("2.0")]
     private ?string $comment = null;
 
     public function getId(): ?int

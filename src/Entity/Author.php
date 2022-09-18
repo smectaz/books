@@ -22,7 +22,7 @@ explication:
  *      "self",
  *      href = @Hateoas\Route(
  *          "detailAuthor",
- *          parameters = { "id" = "expr(objet.getId())" }
+ *          parameters = { "id" = "expr(object.getId())" }
  *      ),
  *      exclusion = @Hateoas\Exclusion(groups="getAuthors")
  * )
@@ -31,7 +31,7 @@ explication:
  *      "delete",
  *      href = @Hateoas\Route(
  *          "deleteAuthor",
- *      parameters = { "id" = "expr(objet.getId())"},
+ *      parameters = { "id" = "expr(object.getId())"},
  *      ),
  *      exclusion = @Hateoas\Exclusion(groups="getAuthors", excludeIf = "expr(not is_granted('ROLE_ADMIN'))"),
  * )
@@ -40,7 +40,7 @@ explication:
  *      "update",
  *      href = @Hateoas\Route(
  *          "updateAuthor",
- *      parameters = { "id" = "expr(objet.getId())"},
+ *      parameters = { "id" = "expr(object.getId())"},
  *      ),
  *      exclusion = @Hateoas\Exclusion(groups="getAuthors", excludeIf = "expr(not is_granted('ROLE_ADMIN'))"),
  * )

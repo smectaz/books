@@ -3,15 +3,17 @@
 namespace App\Controller;
 
 use App\Entity\Author;
+use JMS\Serializer\Serializer;
 use App\Repository\AuthorRepository;
+use JMS\Serializer\SerializerInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use JMS\Serializer\SerializationContext;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
-use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
@@ -32,9 +34,10 @@ class AuthorController extends AbstractController
         $idCache = "getAllAuthor-" . $page . "-" . $limit;
         
         $jsonAuthorList = $cache->get($idCache, function (ItemInterface $item) use ($authorRepository, $page, $limit, $serializer) {
+            $context = SerializationContext :: create() -> setGroups(['getAuthors']);
             $item->tag("authorsCache");
             $authorList = $authorRepository->findAllWithPagination($page, $limit);
-            return $serializer->serialize($authorList, 'json', ['groups' => 'getAuthors']);
+            return $serializer->serialize($authorList, 'json', $context);
         });
       
         return new JsonResponse($jsonAuthorList, Response::HTTP_OK, [], true);
@@ -45,7 +48,8 @@ class AuthorController extends AbstractController
 
     public function getDetailAuthor(Author $author, SerializerInterface $serializer):JsonResponse
     {
-        $jsonAuthor = $serializer->serialize($author, 'json', ['groups' => 'getAuthors']);
+        $context = SerializationContext :: create() -> setGroups(['getAuthors']);
+        $jsonAuthor = $serializer->serialize($author, 'json', $context);
         return new JsonResponse($jsonAuthor, Response::HTTP_OK, [], true);
     }
 
@@ -80,7 +84,8 @@ class AuthorController extends AbstractController
             $em -> persist($author);
             $em -> flush();
 
-            $jsonAuthor = $serializer -> serialize($author, 'json', ['groups' => 'getAuthors']);
+            $context = SerializationContext :: create() -> setGroups(['getAuthors']);
+            $jsonAuthor = $serializer -> serialize($author, 'json', $context);
             $location = $urlGenerator -> generate('detailAuthor', ['id' => $author -> getId()], UrlGeneratorInterface::ABSOLUTE_URL);
 
             return new JsonResponse($jsonAuthor, Response::HTTP_CREATED, ["location" => $location],true);
@@ -91,19 +96,20 @@ class AuthorController extends AbstractController
     #[IsGranted('ROLE_ADMIN', message: "Vous n'avez les droits suffisants pour modifier un auteur")]
     
     public function updateAuthor(Request $request, SerializerInterface $serializer,
-        Author $currentAuthor, EntityManagerInterface $em, ValidatorInterface $validator): JsonResponse {
-
-
-
-        $updatedAuthor = $serializer->deserialize($request->getContent(), Author::class, 'json', [AbstractNormalizer::OBJECT_TO_POPULATE => $currentAuthor]);
+        Author $currentAuthor, EntityManagerInterface $em, ValidatorInterface $validator, TagAwareCacheInterface $cache): JsonResponse {
+            $newAuthor = $serializer -> deserialize($request -> getContent(), Author::class, 'json');
+            $currentAuthor -> setFirstName($newAuthor -> getFirstName());
+            $currentAuthor -> setLastName($newAuthor -> getLastName());
                     // On vérifie les erreurs
-                    $errors = $validator->validate($updatedAuthor);
+                    $errors = $validator->validate($currentAuthor);
                     if ($errors->count() > 0) {
                         return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
                     }
 
-        $em->persist($updatedAuthor);
+        $em->persist($currentAuthor);
         $em->flush();
+
+        $cache ->invalidateTags(["authorsCache"]);
 
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
 

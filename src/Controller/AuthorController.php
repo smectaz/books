@@ -17,9 +17,40 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
+use OpenApi\Annotations as OA;
+
 
 class AuthorController extends AbstractController
 {
+    /**
+     * Cette méthode permet de récupérer l'ensemble des auteurs.
+     *
+     * @OA\Response(
+     *     response=200,
+     *     description="Retourne la liste des auteurs",
+     *     @OA\JsonContent(
+     *        type="array",
+     *        @OA\Items(ref=@Model(type=Author::class, groups={"getAuthors"}))
+     *     )
+     * )
+     * @OA\Parameter(
+     *     name="page",
+     *     in="query",
+     *     description="La page que l'on veut récupérer",
+     *     @OA\Schema(type="int")
+     * )
+     *
+     * @OA\Parameter(
+     *     name="limit",
+     *     in="query",
+     *     description="Le nombre d'auteurs que l'on souhaite récuperer par page",
+     *     @OA\Schema(type="int")
+     * )
+     * @OA\Tag(name="Authors")
+     */
+
       //route pour get tout les auteurs sans distinction
     #[Route('/api/authors', name:'author', methods:['GET'])]
 
@@ -97,14 +128,17 @@ class AuthorController extends AbstractController
     
     public function updateAuthor(Request $request, SerializerInterface $serializer,
         Author $currentAuthor, EntityManagerInterface $em, ValidatorInterface $validator, TagAwareCacheInterface $cache): JsonResponse {
+            
+            // On vérifie les erreurs
+            $errors = $validator->validate($currentAuthor);
+            if ($errors->count() > 0) {
+                return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
+            }
+
             $newAuthor = $serializer -> deserialize($request -> getContent(), Author::class, 'json');
             $currentAuthor -> setFirstName($newAuthor -> getFirstName());
             $currentAuthor -> setLastName($newAuthor -> getLastName());
-                    // On vérifie les erreurs
-                    $errors = $validator->validate($currentAuthor);
-                    if ($errors->count() > 0) {
-                        return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
-                    }
+                    
 
         $em->persist($currentAuthor);
         $em->flush();

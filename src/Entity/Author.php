@@ -4,11 +4,13 @@ namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\AuthorRepository;
+use ApiPlatform\Metadata\ApiResource;
+use JMS\Serializer\Annotation\Groups;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
-use JMS\Serializer\Annotation\Groups;
-use Symfony\Component\Validator\Constraints as Assert;
 use Hateoas\Configuration\Annotation as Hateoas;
+use Symfony\Component\Validator\Constraints as Assert;
+
 
 /*j'utilise les annotation pour coller a la doc officielle de hateoas
 explication:
@@ -47,6 +49,7 @@ explication:
  */
 
 #[ORM\Entity(repositoryClass: AuthorRepository::class)]
+#[ApiResource()]
 class Author
 {
     #[ORM\Id]
